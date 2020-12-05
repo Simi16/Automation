@@ -1,0 +1,68 @@
+- hosts: all
+  tasks:
+  - file:
+      state: directory
+      path: "/dvd_check"
+
+  - mount:
+      src: "/dev/cdrom"
+      path: "/dvd_check"
+      state: mounted
+      fstype: "iso9660"
+
+  - yum_repository:
+      name: "yumAppstreamrepo"
+      baseurl: "file:///dvd_check/AppStream"
+      description: "yum repo for AppStream"
+      gpgcheck: no
+
+  - yum_repository:
+      name: "yumBaseosrepo"
+      baseurl: "file:///dvd_check/BaseOS"
+      description: "yum repo for BaseOS"
+      gpgcheck: no
+ 
+  - name: "yum docker repo"    
+    yum_repository:
+      name: "docker_repo"
+      description: "yum repo for docker"
+      baseurl: "https://download.docker.com/linux/centos/7/x86_64/stable/"
+      gpgcheck: no
+ 
+  - name: Docker Package Installation
+    command: "yum install docker-ce --nobest -y"
+  
+  - name: "Installing Python Package"
+    package:
+      name: "python36-3.6.8-1.module+el8+2710+846623d6.x86_64 "
+      state: present   
+  
+  - name: "Installing pip package for docker"
+    pip:
+       name: "docker"
+       state: present  
+
+  - name: "start docker service"
+    service:
+      name: "docker"
+      state: "started"
+      enabled: yes
+
+  - name: " pull an httpd image"
+    docker_image:
+       name: "httpd"
+       state: present
+
+  - name: " creating a httpd container on docker"
+    docker_container:
+       name: "myhttpd1"
+       image: "httpd"
+       state: "started"
+       detach: yes
+       ports: "82:80"
+       volumes: /var/www/html:/usr/local/apache2/htdocs/
+
+  - name: "Copying Content of webserver in the docker image"
+    copy:
+       src: "/root/index.html"
+       dest: "/var/www/html/"   
